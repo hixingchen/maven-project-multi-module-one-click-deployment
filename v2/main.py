@@ -148,6 +148,7 @@ def jp_console_merge():
 
 def execute_command(ssh,command):
     command = command.replace('\\','/')
+    print(command,'--------------------')
     stdin, stdout, stderr = ssh.exec_command(command)
     stdin.close()
     return stdout
@@ -156,11 +157,14 @@ def deploy():
     ssh = connect_server()
     stdout = execute_command(ssh,f"ps -ef|grep {config_params['tomcat_name']}")
     stdout_infos = stdout.readlines()
+    print(stdout_infos)
     for stdout_info in stdout_infos:
         stdout_info_split = stdout_info.split(' ')
-        if stdout_info.find(f"{os.path.join(config_params['tomcat_path'],config_params['tomcat_name'])}")>0:
+        tomcat_path = os.path.join(config_params['tomcat_path'],config_params['tomcat_name']).replace('\\','/')
+        if stdout_info.find(f"{tomcat_path}")>0:
             for value in stdout_info_split:
                 if value.isdigit():
+                    print("kill tomcat process:",value)
                     execute_command(ssh,f"kill -9 {value}")
                     break
     execute_command(ssh,f"rm -rf {os.path.join(config_params['tomcat_path'],config_params['tomcat_name'],'webapps','ROOT')}")
@@ -182,11 +186,11 @@ def deploy():
 
 def remote_cope_dir(src_path,target_path,sftp):
     src_path = src_path.replace('\\',os.sep).replace('/',os.sep)
-    target_path = target_path.replace('\\',os.sep).replace('/',os.sep)
+    target_path = target_path.replace('\\','/')
     for root,dirs,files in os.walk(src_path):
         for dir in dirs:
             path = os.path.join(root,dir)
-            path = path.replace(src_path,target_path).replace('\\',os.sep).replace('/',os.sep)
+            path = path.replace(src_path,target_path).replace('\\','/')
             try:
                 sftp.mkdir(path)
                 print(f"创建文件夹--->{dir}")
@@ -194,7 +198,7 @@ def remote_cope_dir(src_path,target_path,sftp):
                 continue
         for file in files:
             path = os.path.join(root,file)
-            path = path.replace(src_path,target_path).replace('\\',os.sep).replace('/',os.sep)
+            path = path.replace(src_path,target_path).replace('\\','/')
             sftp.put(os.path.join(root,file),path)
             print(f"复制文件--->{path}")
 
